@@ -1,20 +1,3 @@
-"""
-Hardware Lab device driver exercise.
-Use this version with the simulator only.
-
-Please note that this simulator requires use of asynchronous
-programming - microbit.sleep(), microbit.display.show(), and
-microbit.display.scroll() must be called with the "await"
-keyword, any functions calling these must be declared with the
-"async" keyword, and any time you call your own async functions
-you also need to use await.
-
-For this assignment, please do not use microbit.sleep() except
-within the main() function.
-
-Description: Control individual pixels on the micro:bit display using low-level functions.
-"""
-
 import machine, microbit
 
 OUT_address = 0x50000504
@@ -23,23 +6,23 @@ OUT_CLEAR_address = 0x5000050C
 
 microbit.display.off()
 
+rows = [13, 14, 15]
+columns = [4, 5, 6, 7, 8, 9, 10, 11, 12]
+
 
 def clear_display():
     """
     Turn off all pixels.
     """
-    for row in range(5):
-        for col in range(5):
-            microbit.display.set_pixel(row, col, 0)
+    machine.mem16[OUT_CLEAR_address] = 0b1110001111111110
 
 
 def illuminate_display():
     """
     Turn on all pixels.
     """
-    for row in range(5):
-        for col in range(5):
-            microbit.display.set_pixel(row, col, 9)
+    machine.mem16[OUT_SET_address] = 0b1110000000000000
+    machine.mem16[OUT_CLEAR_address] = 0b0001111111111110
 
 
 def display_pixel(row, column):
@@ -47,25 +30,40 @@ def display_pixel(row, column):
     Turn on one specific pixel.
     """
     clear_display()
-    microbit.display.set_pixel(row, column, 9)
+
+    # Hardcoded pin assignments for each LED
+    pixel_to_pins = [
+        [(13, 4), (14, 7), (13, 5), (14, 8), (13, 6)],
+        [(15, 7), (15, 9), (15, 10), (15, 11), (15, 12)],
+        [(14, 4), (13, 9), (14, 5), (15, 9), (13, 8)],
+        [(13, 7), (13, 6), (13, 5), (13, 4), (15, 3)],
+        [(15, 6), (14, 10), (15, 8), (14, 11), (15, 9)]]
+
+    power_pin, ground_pin = pixel_to_pins[row][column]
+
+    machine.mem16[OUT_SET_address] = 1 << power_pin
+    machine.mem16[OUT_CLEAR_address] = 1 << ground_pin
 
 
-async def main():
+def main():
     """
     Standalone test of device driver.
     """
 
     display_pixel(2, 2)
-    await microbit.sleep(1000)
+    microbit.sleep(1000)
     display_pixel(1, 1)
+    microbit.sleep(1000)
 
     clear_display()
-    await microbit.sleep(1000)
+    microbit.sleep(1000)
     display_pixel(2, 2)
-    await microbit.sleep(1000)
+    microbit.sleep(1000)
     illuminate_display()
-    await microbit.sleep(1000)
+    microbit.sleep(1000)
     clear_display()
+
 
 if __name__ == "__main__":
-    microbit.run(main)
+    main()
+
